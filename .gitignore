@@ -1,0 +1,11 @@
+*.pdf
+server
+*.bak
+*.png
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.out
+*.run.xml
