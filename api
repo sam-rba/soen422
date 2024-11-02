@@ -1,0 +1,7 @@
+Method	Path				Query
+
+POST	/humidity			<float RH>
+POST	/target_humidity	<float RH>
+GET		/humidity
+GET		/target_humidity
+POST	/duty_cycle		<TODO>
