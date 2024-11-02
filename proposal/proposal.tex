@@ -1,0 +1,85 @@
+\documentclass[11pt]{article}
+\usepackage[backend=biber]{biblatex}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{tabularx}
+
+\addbibresource{sources.bib}
+
+\title{Smart Campus Humidifer System Proposal
+\\ SOEN 422}
+\author{Sam Anthony 40271987}
+\date{\today\\Revision 1}
+
+\begin{document}
+
+\maketitle
+
+\section{Problem}
+
+Humidity is the amount of water vapor in a given amount of air.
+Relative humidity (RH) is the ratio of humidity to the maximum possible humidity before condensation occurs.
+Health Canada recommends a RH of 35--50\%.
+However, during the winter when indoor heating is used, RH can fall below 30\%.
+This can cause skin and eye irritation, and can lead to respiratory infections~\cite{healthcanada}.
+The RH of campus buildings should be regulated, especially during the winter.
+
+A solution should meet the following criteria:
+\begin{enumerate}
+	\item regulate indoor humidity,
+	\item integrate with existing on-campus HVAC systems,
+	\item be economical to install and maintain,
+	\item be energy efficient, and
+	\item be easily configurable.
+\end{enumerate}
+
+\section{Proposed Solution}
+
+The proposed solution is a humidifier with a closed-loop control system.
+It will be a \emph{fog type} humidifier with a high-pressure pump and atomizing nozzle that injects water droplets into the air stream.
+This will minimize cost and energy compared to a \emph{steam type} humidifier because no heating element is required.
+According to Armstrong, ``pressure fog is a system that is perfect for applications requiring high humidification output with minimal energy consumption" \cite{armstrong}.
+
+The water nozzle can easily be installed in the existing HVAC ductwork.
+
+Inhabitants of the building will be able to adjust the desired humidity level from their smart phones.
+
+\section{Initial Design}
+
+A microcontroller equiped with a humidity sensor and a WiFi and Bluetooth module will be installed in each room of the building.
+The humidity of each room will be sampled periodically and sent to a remote server via the WiFi network.
+Users will connect from their phone and set the target humidity via bluetooth.
+The target humidity will also be sent to the server over WiFi.
+
+The server will store the target humidity and will maintain a log of humidity measurements for each room.
+With this data it can calculate a running average humidity for the building.
+
+Another microcontroller, also WiFi-capable, will be installed in the central HVAC room of the building.
+It will connect to the server via WiFi and retreive the target humidity and current average humidity of the building.
+A PID algorithm will be used to determine the correct duty cycle of the humidifier in order to regulate the humidity to the target level.
+To control the humidifier, the microcontroller will use PWM to actuate a solenoid valve between the water pump and the injection nozzle.
+
+The HVAC room microcontroller will post the current duty cycle to the server for monitoring.
+The server will provide a graphical interface that displays historical humidity data for each room and for the entire building, as well as the current duty cycle of the humidifier and the  target humidity.
+
+\fbox{\includegraphics[width=\textwidth]{"diagram.png"}}
+
+\section{Hardware}
+
+\begin{tabularx}{\textwidth}{r X X}
+	\hline
+	Quantity & Device & Notes \\
+	\hline
+	1/room & DHT11 humidity sensor \\
+	1/room + 1 & ESP32 & one per room, and one for the HVAC room \\
+	1 & High-pressure water pump \\
+	1 & Solenoid valve \\
+	1 & Atomizing nozzle \\
+	 - & Water lines \\
+	\hline
+\end{tabularx}
+
+\printbibliography
+
+\end{document}
