@@ -9,15 +9,19 @@ import (
 
 const addr = ":9090"
 
-type humidityHandler struct {
+type HumidityHandler struct {
 	humidity Record[float32]
 }
 
-func newHumidityHandler() humidityHandler {
-	return humidityHandler{newRecord[float32]()}
+func newHumidityHandler() HumidityHandler {
+	return HumidityHandler{newRecord[float32]()}
 }
 
-func (h humidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h HumidityHandler) Close() {
+	h.humidity.Close()
+}
+
+func (h HumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.URL)
 	switch r.Method {
 	case http.MethodGet:
@@ -30,7 +34,7 @@ func (h humidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h humidityHandler) get(w http.ResponseWriter, r *http.Request) {
+func (h HumidityHandler) get(w http.ResponseWriter, r *http.Request) {
 	c := make(chan float32)
 	h.humidity.getRecent <- c
 	humidity, ok := <-c
@@ -42,7 +46,7 @@ func (h humidityHandler) get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%.2f", humidity)
 }
 
-func (h humidityHandler) post(w http.ResponseWriter, r *http.Request) {
+func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.RawQuery
 	humidity, err := strconv.ParseFloat(query, 32)
 	if err != nil {
@@ -54,7 +58,10 @@ func (h humidityHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.Handle("/humidity", newHumidityHandler())
+	humidityHandler := newHumidityHandler()
+	defer humidityHandler.Close()
+
+	http.Handle("/humidity", humidityHandler)
 	fmt.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
