@@ -1,0 +1,33 @@
+# Server
+
+Design API
+
+Implement web server
+
+Implement GUI
+
+
+# Sensor Station
+
+Design state machine
+
+Measure humidity
+
+Send humidity to server
+
+Receive target humidity via bluetooth
+
+Send target humidity to server
+
+
+# HVAC Station
+
+Design state machine
+
+Receive humidity and target humidity from server
+
+PID algorithm to control DC
+
+Write DC to solenoid
+
+Send DC to server
