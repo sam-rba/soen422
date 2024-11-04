@@ -48,15 +48,12 @@ func (h HumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HumidityHandler) get(w http.ResponseWriter, r *http.Request) {
-	c := make(chan float32)
-	h.humidity.getRecent <- c
-	humidity, ok := <-c
-	if !ok {
+	if humidity, ok := h.average(); ok {
+		fmt.Fprintf(w, "%.2f", humidity)
+	} else {
 		w.WriteHeader(http.StatusGone)
 		fmt.Fprintf(w, "no humidity data stored on server")
-		return
 	}
-	fmt.Fprintf(w, "%.2f", humidity)
 }
 
 func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +65,27 @@ func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.humidity.put <- float32(humidity)
+}
+
+// Calculate the average humidity in the building. Returns false if there is not enough data available.
+func (h HumidityHandler) average() (Humidity, bool) {
+	sum := 0
+	nRooms := 0
+	for room, record := range h.rooms {
+		c := make(chan Humidity)
+		record.getRecent() <- c
+		if humidity, ok := <-c; ok {
+			sum += humidity
+			nRooms++
+		} else {
+			log.Printf("Warning: no humidity for room '%s'\n", room)
+		}
+	}
+	if nRooms == 0 {
+		log.Println("Warning: not enough data to calculate average humidity")
+		return -1.0, false
+	}
+	return sum/nRooms, true
 }
 
 func main() {
