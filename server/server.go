@@ -9,7 +9,8 @@ import (
 )
 
 const addr = ":9090"
-var rooms = []RoomID {
+
+var rooms = []RoomID{
 	"SNbeEcs7XVWMEvjeEYgwZnp9XYjToVhh",
 	"rEKKa5TW5xjArmR25wT4Uiw7tksk4noE",
 }
