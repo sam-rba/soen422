@@ -77,7 +77,6 @@ func (h HumidityHandler) get(w http.ResponseWriter, r *http.Request) {
 func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	queryVals, err := parseQuery(r.URL.RawQuery, []string{"room", "humidity"})
 	if err != nil {
-		log.Println(err)
 		badRequest(w, "invalid query: %v", err)
 		return
 	}
@@ -86,14 +85,12 @@ func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 
 	humidity, err := strconv.ParseFloat(humidityStr, 32)
 	if err != nil {
-		log.Println("Warning: invalid humidity:", err)
 		badRequest(w, "invalid humidity: '%s'", humidityStr)
 		return
 	}
 
 	record, ok := h.rooms[room]
 	if !ok {
-		log.Println("Warning: invalid room:", room)
 		badRequest(w, "invalid room ID: '%s'", room)
 		return
 	}
@@ -174,6 +171,7 @@ func parseQuery(query string, keys []string) (map[string]string, error) {
 }
 
 func badRequest(w http.ResponseWriter, format string, a ...any) {
+	log.Println("Warning: bad request:", fmt.Sprintf(format, a))
 	w.WriteHeader(http.StatusBadRequest)
 	fmt.Fprintf(w, format, a)
 }
