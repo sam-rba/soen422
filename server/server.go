@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -57,23 +58,54 @@ func (h HumidityHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.RawQuery
-	humidity, err := strconv.ParseFloat(query, 32)
+	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid query string: '%s'", query)
+		fmt.Fprintf(w, "invalid query: %v", err)
 		return
 	}
-	h.humidity.put <- float32(humidity)
+
+	room := RoomID(query.Get("room"))
+	if room == "" {
+		log.Println(r.Method, r.URL, "missing 'room' in query")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid query: missing key 'room'")
+		return
+	}
+
+	humidityStr := query.Get("humidity")
+	if humidityStr == "" {
+		log.Println(r.Method, r.URL, "missing 'humidity' in query")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid query: missing key 'humidity'")
+		return
+	}
+
+	humidity, err := strconv.ParseFloat(humidityStr, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid humidity: %v", err)
+		return
+	}
+
+	record, ok := h.rooms[room]
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid room ID: '%s'", room)
+		return
+	}
+
+	record.put <- Humidity(humidity)
 }
 
 // Calculate the average humidity in the building. Returns false if there is not enough data available.
 func (h HumidityHandler) average() (Humidity, bool) {
-	sum := 0
+	var sum Humidity = 0
 	nRooms := 0
 	for room, record := range h.rooms {
 		c := make(chan Humidity)
-		record.getRecent() <- c
+		record.getRecent <- c
 		if humidity, ok := <-c; ok {
 			sum += humidity
 			nRooms++
@@ -85,11 +117,11 @@ func (h HumidityHandler) average() (Humidity, bool) {
 		log.Println("Warning: not enough data to calculate average humidity")
 		return -1.0, false
 	}
-	return sum/nRooms, true
+	return sum / Humidity(nRooms), true
 }
 
 func main() {
-	humidityHandler := newHumidityHandler()
+	humidityHandler := newHumidityHandler(rooms)
 	defer humidityHandler.Close()
 
 	http.Handle("/humidity", humidityHandler)
