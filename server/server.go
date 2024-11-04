@@ -58,45 +58,53 @@ func (h HumidityHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
-	query, err := url.ParseQuery(r.URL.RawQuery)
+	queryVals, err := parseQuery(r.URL.RawQuery, []string{"room", "humidity"})
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "invalid query: %v", err)
 		return
 	}
-
-	room := RoomID(query.Get("room"))
-	if room == "" {
-		log.Println(r.Method, r.URL, "missing 'room' in query")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid query: missing key 'room'")
-		return
-	}
-
-	humidityStr := query.Get("humidity")
-	if humidityStr == "" {
-		log.Println(r.Method, r.URL, "missing 'humidity' in query")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid query: missing key 'humidity'")
-		return
-	}
+	room := RoomID(queryVals["room"])
+	humidityStr := queryVals["humidity"]
 
 	humidity, err := strconv.ParseFloat(humidityStr, 32)
 	if err != nil {
+		log.Println("Warning: invalid humidity:", err)
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid humidity: %v", err)
+		fmt.Fprintf(w, "invalid humidity: '%s'", humidityStr)
 		return
 	}
 
 	record, ok := h.rooms[room]
 	if !ok {
+		log.Println("Warning: invalid room:", room)
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "invalid room ID: '%s'", room)
 		return
 	}
 
 	record.put <- Humidity(humidity)
+}
+
+// Parse the value associated with each key in the query string. Returns a map of
+// keys and values, or error if one of the keys is missing, or if there is no value
+// associated with one of the keys.
+func parseQuery(query string, keys []string) (map[string]string, error) {
+	queryVals, err := url.ParseQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	vals := make(map[string]string)
+	for _, key := range keys {
+		val := queryVals.Get(key)
+		if val == "" {
+			return nil, fmt.Errorf("missing key '%s'", key)
+		}
+		vals[key] = val
+	}
+	return vals, nil
 }
 
 // Calculate the average humidity in the building. Returns false if there is not enough data available.
