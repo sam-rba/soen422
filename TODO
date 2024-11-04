@@ -1,8 +1,11 @@
+'*' means 'complete'.
+
+
 # Server
 
-Design API
+* Design API
 
-Implement web server
+* Implement web server
 
 Implement GUI
 
