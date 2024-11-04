@@ -8,17 +8,30 @@ import (
 )
 
 const addr = ":9090"
-
-type HumidityHandler struct {
-	humidity Record[float32]
+var rooms = []RoomID {
+	",4AL[+V*:*k*n{7vL{}/d=K#Mo*y*^.@",
+	"Jq!+<p3g-iu%-vU]FZp2H,AKZWp@!4![",
 }
 
-func newHumidityHandler() HumidityHandler {
-	return HumidityHandler{newRecord[float32]()}
+type Humidity float32
+type RoomID string
+
+type HumidityHandler struct {
+	rooms map[RoomID]Record[Humidity]
+}
+
+func newHumidityHandler(rooms []RoomID) HumidityHandler {
+	h := HumidityHandler{make(map[RoomID]Record[Humidity])}
+	for _, id := range rooms {
+		h.rooms[id] = newRecord[Humidity]()
+	}
+	return h
 }
 
 func (h HumidityHandler) Close() {
-	h.humidity.Close()
+	for _, record := range h.rooms {
+		record.Close()
+	}
 }
 
 func (h HumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
