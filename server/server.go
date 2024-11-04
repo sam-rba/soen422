@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 )
 
 const addr = ":9090"
@@ -22,11 +23,17 @@ type HumidityHandler struct {
 	rooms map[RoomID]Record[Humidity]
 }
 
+type TargetHumidityHandler struct {
+	mu     sync.Mutex
+	target Humidity
+}
+
 func main() {
 	humidityHandler := newHumidityHandler(rooms)
 	defer humidityHandler.Close()
 
 	http.Handle("/humidity", humidityHandler)
+	http.Handle("/target_humidity", new(TargetHumidityHandler))
 	fmt.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
@@ -116,6 +123,38 @@ func (h HumidityHandler) average() (Humidity, bool) {
 		return -1.0, false
 	}
 	return sum / Humidity(nRooms), true
+}
+
+func (h *TargetHumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.URL)
+	switch r.Method {
+	case http.MethodGet:
+		h.get(w, r)
+	case http.MethodPost:
+		h.post(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "invalid method: '%s'", r.Method)
+	}
+}
+
+func (h *TargetHumidityHandler) get(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	fmt.Fprintf(w, "%.2f", h.target)
+}
+
+func (h *TargetHumidityHandler) post(w http.ResponseWriter, r *http.Request) {
+	target, err := strconv.ParseFloat(r.URL.RawQuery, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid humidity: '%s'", r.URL.RawQuery)
+		return
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.target = Humidity(target)
 }
 
 // Parse the value associated with each key in the query string. Returns a map of
