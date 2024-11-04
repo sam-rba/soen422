@@ -22,6 +22,15 @@ type HumidityHandler struct {
 	rooms map[RoomID]Record[Humidity]
 }
 
+func main() {
+	humidityHandler := newHumidityHandler(rooms)
+	defer humidityHandler.Close()
+
+	http.Handle("/humidity", humidityHandler)
+	fmt.Printf("Listening on %s...\n", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
 func newHumidityHandler(rooms []RoomID) HumidityHandler {
 	h := HumidityHandler{make(map[RoomID]Record[Humidity])}
 	for _, id := range rooms {
@@ -88,26 +97,6 @@ func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	record.put <- Humidity(humidity)
 }
 
-// Parse the value associated with each key in the query string. Returns a map of
-// keys and values, or error if one of the keys is missing, or if there is no value
-// associated with one of the keys.
-func parseQuery(query string, keys []string) (map[string]string, error) {
-	queryVals, err := url.ParseQuery(query)
-	if err != nil {
-		return nil, err
-	}
-
-	vals := make(map[string]string)
-	for _, key := range keys {
-		val := queryVals.Get(key)
-		if val == "" {
-			return nil, fmt.Errorf("missing key '%s'", key)
-		}
-		vals[key] = val
-	}
-	return vals, nil
-}
-
 // Calculate the average humidity in the building. Returns false if there is not enough data available.
 func (h HumidityHandler) average() (Humidity, bool) {
 	var sum Humidity = 0
@@ -129,11 +118,22 @@ func (h HumidityHandler) average() (Humidity, bool) {
 	return sum / Humidity(nRooms), true
 }
 
-func main() {
-	humidityHandler := newHumidityHandler(rooms)
-	defer humidityHandler.Close()
+// Parse the value associated with each key in the query string. Returns a map of
+// keys and values, or error if one of the keys is missing, or if there is no value
+// associated with one of the keys.
+func parseQuery(query string, keys []string) (map[string]string, error) {
+	queryVals, err := url.ParseQuery(query)
+	if err != nil {
+		return nil, err
+	}
 
-	http.Handle("/humidity", humidityHandler)
-	fmt.Printf("Listening on %s...\n", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	vals := make(map[string]string)
+	for _, key := range keys {
+		val := queryVals.Get(key)
+		if val == "" {
+			return nil, fmt.Errorf("missing key '%s'", key)
+		}
+		vals[key] = val
+	}
+	return vals, nil
 }
