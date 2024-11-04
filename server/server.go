@@ -10,8 +10,8 @@ import (
 
 const addr = ":9090"
 var rooms = []RoomID {
-	",4AL[+V*:*k*n{7vL{}/d=K#Mo*y*^.@",
-	"Jq!+<p3g-iu%-vU]FZp2H,AKZWp@!4![",
+	"SNbeEcs7XVWMEvjeEYgwZnp9XYjToVhh",
+	"rEKKa5TW5xjArmR25wT4Uiw7tksk4noE",
 }
 
 type Humidity float32
