@@ -1,7 +1,7 @@
-Method	Path				Query						Description
+Method	Path				Query									Description
 
-POST	/humidity			?<string room ID>&<float RH>		Set the measured humidity of a room.
-POST	/target_humidity	<float RH>					Set the target humidity for the building.
-GET		/humidity										Get the average humidity of the building.
-GET		/target_humidity								Get the target humidity of the building.
+POST	/humidity			?room=<string room ID>&humidity=<float RH>	Set the measured humidity of a room.
+POST	/target_humidity	?<float RH>								Set the target humidity for the building.
+GET		/humidity													Get the average humidity of the building.
+GET		/target_humidity											Get the target humidity of the building.
 POST	/duty_cycle		<TODO>
