@@ -50,6 +50,7 @@ loop(void) {
 	delay(PERIOD);
 }
 
+// Send the measured humidity to the server.
 int
 send(float humidity) {
 	if (WiFi.status() != WL_CONNECTED) {
@@ -71,6 +72,7 @@ send(float humidity) {
 	return 0;
 }
 
+// Format the humidity URL string.
 char *
 humidityUrl(float humidity) {
 	static char query[256];
@@ -82,6 +84,7 @@ humidityUrl(float humidity) {
 	return url(domain, humidityPath, query);
 }
 
+// Format the url string. Query should not include the '?'.
 char *
 url(const char *domain, const char *path, const char *query) {
 	static char buf[512];
