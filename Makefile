@@ -1,6 +1,6 @@
 SENSOR_SRC = SensorStation/SensorStation.ino
 HVAC_SRC = HvacStation/HvacStation.ino
-SERVER_SRC = server/server.go server/record.go
+SERVER_SRC = server/*.go
 
 BOARD = esp32:esp32:lilygo_t_display
 PORT = /dev/ttyACM0
