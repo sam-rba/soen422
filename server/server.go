@@ -18,6 +18,7 @@ var rooms = []RoomID{
 
 type Humidity float32
 type RoomID string
+type DutyCycle float32
 
 type HumidityHandler struct {
 	rooms map[RoomID]Record[Humidity]
@@ -28,12 +29,19 @@ type TargetHumidityHandler struct {
 	target Humidity
 }
 
+type DutyCycleHandler struct {
+	mu sync.Mutex
+	dc DutyCycle
+}
+
 func main() {
 	humidityHandler := newHumidityHandler(rooms)
 	defer humidityHandler.Close()
 
 	http.Handle("/humidity", humidityHandler)
 	http.Handle("/target_humidity", new(TargetHumidityHandler))
+	http.Handle("/duty_cycle", new(DutyCycleHandler))
+
 	fmt.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
@@ -148,6 +156,26 @@ func (h *TargetHumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.target = Humidity(target)
+}
+
+func (h *DutyCycleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.URL)
+
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "invalid method: '%s'", r.Method)
+		return
+	}
+
+	dc, err := strconv.ParseFloat(r.URL.RawQuery, 32)
+	if err != nil {
+		badRequest(w, "invalid duty cycle: '%s'", r.URL.RawQuery)
+		return
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.dc = DutyCycle(dc)
 }
 
 // Parse the value associated with each key in the query string. Returns a map of
