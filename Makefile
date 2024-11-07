@@ -20,6 +20,9 @@ server/server: ${SERVER_SRC}
 release:
 	GOOS=${RELEASE_GOOS} GOARCH=${RELEASE_GOARCH} go build -o server/server ${SERVER_SRC}
 
+clean:
+	rm -r server/server SensorStation/build HvacStation/build
+
 SensorStation/build: ${SENSOR_SRC}
 	arduino-cli compile ${CFLAGS} SensorStation
 	echo "" > $@
