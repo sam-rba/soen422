@@ -29,7 +29,7 @@ func main() {
 }
 
 // Parse the value associated with each key in the query string. Returns a map of
-// keys and values, or error if one of the keys is missing, or if there is no value
+// keys and values, or error if one of the keys is missing or if there is no value
 // associated with one of the keys.
 func parseQuery(query string, keys []string) (map[string]string, error) {
 	queryVals, err := url.ParseQuery(query)
