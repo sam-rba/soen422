@@ -2,6 +2,10 @@
 #include <HTTPClient.h>
 #include <PID_v1.h>
 
+enum {
+	SECOND = 1000,
+	PERIOD = 30*SECOND,
+};
 enum pins { SOLENOID_PIN = 21 };
 enum tunings {
 	P = 2,
@@ -42,12 +46,15 @@ setup(void) {
 
 void
 loop(void) {
-	float humidity;
-	if (getHumidity(&humidity) != 0) {
-		Serial.println("Failed to get humidity from server.");
-		Serial.println("Retrying in 5s...");
-		delay(5000);
-		return;
+	static unsigned long lastUpdate = 0; // Last time humidity was retrived from server.
+	static float humidity = TARGET_HUMIDITY;
+
+	unsigned long now = millis();
+	if (now - lastUpdate > PERIOD) {
+		if (getHumidity(&humidity) == 0)
+			lastUpdate = now;
+		else
+			Serial.println("Failed to get humidity from server.");
 	}
 
 	pidInput = humidity;
