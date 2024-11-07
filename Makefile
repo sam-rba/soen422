@@ -1,3 +1,6 @@
+RELEASE_GOOS = openbsd
+RELEASE_GOARCH = amd64
+
 SENSOR_SRC = SensorStation/SensorStation.ino
 HVAC_SRC = HvacStation/HvacStation.ino
 SERVER_SRC = server/*.go
@@ -13,6 +16,9 @@ all: SensorStation/build HvacStation/build server/server
 server/server: ${SERVER_SRC}
 	go build -o $@ $^
 	gofmt -l -s -w $^
+
+release:
+	GOOS=${RELEASE_GOOS} GOARCH=${RELEASE_GOARCH} go build -o server/server ${SERVER_SRC}
 
 SensorStation/build: ${SENSOR_SRC}
 	arduino-cli compile ${CFLAGS} SensorStation
@@ -35,4 +41,4 @@ upload_hvac: HvacStation/build
 monitor:
 	arduino-cli monitor -b ${BOARD} -p ${PORT}
 
-.PHONY: monitor upload_sensor upload_hvac
+.PHONY: monitor upload_sensor upload_hvac release
