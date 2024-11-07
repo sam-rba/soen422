@@ -12,11 +12,11 @@ Implement GUI
 
 # Sensor Station
 
-Design state machine
+* Design state machine
 
-Measure humidity
+* Measure humidity
 
-Send humidity to server
+* Send humidity to server
 
 Receive target humidity via bluetooth (or just buttons?)
 
@@ -25,12 +25,14 @@ Send target humidity to server
 
 # HVAC Station
 
-Design state machine
+* Design state machine
 
-Receive humidity and target humidity from server
+* Receive humidity  from server
 
-PID algorithm to control DC
+Receive target humidity from server
 
-Write DC to solenoid
+* PID algorithm to control DC
+
+* Write DC to solenoid
 
 Send DC to server
