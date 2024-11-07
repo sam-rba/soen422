@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -92,4 +93,24 @@ func (h HumidityHandler) average() (Humidity, bool) {
 		return -1.0, false
 	}
 	return sum / Humidity(nRooms), true
+}
+
+// Parse the value associated with each key in the query string. Returns a map of
+// keys and values, or error if one of the keys is missing or if there is no value
+// associated with one of the keys.
+func parseQuery(query string, keys []string) (map[string]string, error) {
+	queryVals, err := url.ParseQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	vals := make(map[string]string)
+	for _, key := range keys {
+		val := queryVals.Get(key)
+		if val == "" {
+			return nil, fmt.Errorf("missing key '%s'", key)
+		}
+		vals[key] = val
+	}
+	return vals, nil
 }
