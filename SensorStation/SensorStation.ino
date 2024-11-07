@@ -65,7 +65,7 @@ send(float humidity) {
 	http.begin(client, url);
 	int responseCode = http.POST("");
 	http.end();
-	Serial.printf("HTTP response: %d\n", responseCode);
+	Serial.printf("HTTP response code: %d\n", responseCode);
 	if (responseCode != HTTP_CODE_OK)
 		return 1;
 	return 0;
