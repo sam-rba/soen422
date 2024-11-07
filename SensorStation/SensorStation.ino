@@ -60,7 +60,7 @@ send(float humidity) {
 	WiFiClient client;
 	HTTPClient http;
 
-	const char *url = humidityURL(humidity);
+	const char *url = humidityUrl(humidity);
 	Serial.printf("POST %s...\n", url);
 	http.begin(client, url);
 	int responseCode = http.POST("");
@@ -72,7 +72,7 @@ send(float humidity) {
 }
 
 char *
-humidityURL(float humidity) {
+humidityUrl(float humidity) {
 	static char query[256];
 	int n;
 
