@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"github.com/sam-rba/share"
 	"html/template"
@@ -8,47 +9,8 @@ import (
 	"net/http"
 )
 
-const dashboardHtml = `
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>HVAC Dashboard</title>
-	</head>
-	<body>
-		<p>Average humidity:
-			{{/* A value less than 0 means no data. */}}
-			{{- if ge .Average 0.0 -}}
-				{{ printf "%.1f%%" .Average }}
-			{{- else -}}
-				unknown
-			{{- end -}}
-		</p>
-		<p>Duty cycle:
-			{{/* A value less than 0 means no data. */}}
-			{{- if ge .DutyCycle 0.0 -}}
-				{{ printf "%.1f%%" .DutyCycle }}
-			{{- else -}}
-				unknown
-			{{- end -}}
-		</p>
-		<table>
-			<tr><th>Room</th><th>Humidity</th></tr>
-			{{ range $id, $humidity := .Rooms }}
-				<tr>
-					<td>{{ $id }}</td>
-					<td>
-						{{/* A value less than 0 means no data. */}}
-						{{- if ge $humidity 0.0 -}}
-							{{ printf "%.1f%%" $humidity }}
-						{{- else -}}
-							unknown
-						{{- end -}}
-					</td>
-				</tr>
-			{{ end }}
-		</table>
-	</body>
-</html>`
+//go:embed dashboard.html
+var dashboardHtml string
 
 var dashboard = template.Must(template.New("dashboard").Parse(dashboardHtml))
 
