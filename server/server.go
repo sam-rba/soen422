@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sam-rba/share"
 	"log"
 	"net/http"
 )
@@ -17,12 +18,14 @@ type RoomID string
 
 func main() {
 	building := newBuilding(roomIDs)
+	dutyCycle := share.NewVal[DutyCycle]()
 	defer building.Close()
+	defer dutyCycle.Close()
 
-	http.Handle("/", DashboardHandler{building})
+	http.Handle("/", DashboardHandler{building, dutyCycle})
 	http.Handle("/humidity", HumidityHandler{building})
 	http.Handle("/target_humidity", new(TargetHumidityHandler))
-	http.Handle("/duty_cycle", new(DutyCycleHandler))
+	http.Handle("/duty_cycle", DutyCycleHandler{dutyCycle})
 
 	fmt.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))

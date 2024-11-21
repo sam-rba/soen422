@@ -2,20 +2,19 @@ package main
 
 import (
 	"fmt"
+	"github.com/sam-rba/share"
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 )
 
 type DutyCycle float32
 
 type DutyCycleHandler struct {
-	mu sync.Mutex
-	dc DutyCycle
+	dc share.Val[DutyCycle]
 }
 
-func (h *DutyCycleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h DutyCycleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.URL)
 
 	if r.Method != http.MethodPost {
@@ -30,7 +29,5 @@ func (h *DutyCycleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.dc = DutyCycle(dc)
+	h.dc.Set <- DutyCycle(dc)
 }

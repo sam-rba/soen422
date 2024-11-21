@@ -14,10 +14,10 @@ UPLOADFLAGS = -p ${PORT} ${CFLAGS}
 all: SensorStation/build HvacStation/build server/server
 
 server/server: ${SERVER_SRC}
-	go build -o $@ $^
+	go build -o $@ ./server
 
 fmt: ${SERVER_SRC}
-	gofmt -l -s -w $^
+	gofmt -l -s -w ./server
 
 release:
 	GOOS=${RELEASE_GOOS} GOARCH=${RELEASE_GOARCH} go build -o server/server ${SERVER_SRC}

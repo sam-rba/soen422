@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sam-rba/share"
 	"html/template"
 	"log"
 	"net/http"
@@ -20,7 +21,16 @@ const dashboardHtml = `
 				{{ printf "%.1f%%" .Average }}
 			{{- else -}}
 				unknown
-			{{- end }}</p>
+			{{- end -}}
+		</p>
+		<p>Duty cycle:
+			{{/* A value less than 0 means no data. */}}
+			{{- if ge .DutyCycle 0.0 -}}
+				{{ printf "%.1f%%" .DutyCycle }}
+			{{- else -}}
+				unknown
+			{{- end -}}
+		</p>
 		<table>
 			<tr><th>Room</th><th>Humidity</th></tr>
 			{{ range $id, $humidity := .Rooms }}
@@ -43,12 +53,14 @@ const dashboardHtml = `
 var dashboard = template.Must(template.New("dashboard").Parse(dashboardHtml))
 
 type Dashboard struct {
-	Average Humidity
-	Rooms   map[RoomID]Humidity
+	Average   Humidity
+	DutyCycle DutyCycle
+	Rooms     map[RoomID]Humidity
 }
 
 type DashboardHandler struct {
-	Building
+	building  Building
+	dutyCycle share.Val[DutyCycle]
 }
 
 func (h DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -60,21 +72,28 @@ func (h DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := newDashboard(h.Building)
+	db := h.buildDashboard()
 	err := dashboard.Execute(w, db)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func newDashboard(b Building) Dashboard {
-	average, ok := b.average()
+func (h DashboardHandler) buildDashboard() Dashboard {
+	average, ok := h.building.average()
 	if !ok {
 		average = -1
 	}
 
+	var duty DutyCycle
+	if dutyp, ok := h.dutyCycle.TryGet(); ok {
+		duty = *dutyp
+	} else {
+		duty = -1
+	}
+
 	rooms := make(map[RoomID]Humidity)
-	for id, record := range b {
+	for id, record := range h.building {
 		c := make(chan Humidity)
 		record.getRecent <- c
 		humidity, ok := <-c
@@ -84,5 +103,5 @@ func newDashboard(b Building) Dashboard {
 		rooms[id] = humidity
 	}
 
-	return Dashboard{average, rooms}
+	return Dashboard{average, duty, rooms}
 }
