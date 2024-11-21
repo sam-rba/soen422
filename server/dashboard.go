@@ -15,6 +15,7 @@ const dashboardHtml = `
 	</head>
 	<body>
 		<p>Average humidity:
+			{{/* A value less than 0 means no data. */}}
 			{{- if ge .Average 0.0 -}}
 				{{ printf "%.1f%%" .Average }}
 			{{- else -}}
@@ -26,6 +27,7 @@ const dashboardHtml = `
 				<tr>
 					<td>{{ $id }}</td>
 					<td>
+						{{/* A value less than 0 means no data. */}}
 						{{- if ge $humidity 0.0 -}}
 							{{ printf "%.1f%%" $humidity }}
 						{{- else -}}
