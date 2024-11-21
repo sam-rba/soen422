@@ -11,21 +11,7 @@ import (
 type Humidity float32
 
 type HumidityHandler struct {
-	rooms map[RoomID]Record[Humidity]
-}
-
-func newHumidityHandler(rooms []RoomID) HumidityHandler {
-	h := HumidityHandler{make(map[RoomID]Record[Humidity])}
-	for _, id := range rooms {
-		h.rooms[id] = newRecord[Humidity]()
-	}
-	return h
-}
-
-func (h HumidityHandler) Close() {
-	for _, record := range h.rooms {
-		record.Close()
-	}
+	Building
 }
 
 func (h HumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +28,7 @@ func (h HumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HumidityHandler) get(w http.ResponseWriter, r *http.Request) {
-	if humidity, ok := h.average(); ok {
+	if humidity, ok := h.Building.average(); ok {
 		fmt.Fprintf(w, "%.2f", humidity)
 	} else {
 		w.WriteHeader(http.StatusGone)
@@ -65,34 +51,13 @@ func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record, ok := h.rooms[room]
+	record, ok := h.Building[room]
 	if !ok {
 		badRequest(w, "invalid room ID: '%s'", room)
 		return
 	}
 
 	record.put <- Humidity(humidity)
-}
-
-// Calculate the average humidity in the building. Returns false if there is not enough data available.
-func (h HumidityHandler) average() (Humidity, bool) {
-	var sum Humidity = 0
-	nRooms := 0
-	for room, record := range h.rooms {
-		c := make(chan Humidity)
-		record.getRecent <- c
-		if humidity, ok := <-c; ok {
-			sum += humidity
-			nRooms++
-		} else {
-			log.Printf("Warning: no humidity for room '%s'\n", room)
-		}
-	}
-	if nRooms == 0 {
-		log.Println("Warning: not enough data to calculate average humidity")
-		return -1.0, false
-	}
-	return sum / Humidity(nRooms), true
 }
 
 // Parse the value associated with each key in the query string. Returns a map of

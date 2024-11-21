@@ -8,7 +8,7 @@ import (
 
 const addr = ":9090"
 
-var rooms = []RoomID{
+var roomIDs = []RoomID{
 	"SNbeEcs7XVWMEvjeEYgwZnp9XYjToVhh",
 	"rEKKa5TW5xjArmR25wT4Uiw7tksk4noE",
 }
@@ -16,10 +16,11 @@ var rooms = []RoomID{
 type RoomID string
 
 func main() {
-	humidityHandler := newHumidityHandler(rooms)
-	defer humidityHandler.Close()
+	building := newBuilding(roomIDs)
+	defer building.Close()
 
-	http.Handle("/humidity", humidityHandler)
+	http.Handle("/", DashboardHandler{building})
+	http.Handle("/humidity", HumidityHandler{building})
 	http.Handle("/target_humidity", new(TargetHumidityHandler))
 	http.Handle("/duty_cycle", new(DutyCycleHandler))
 
