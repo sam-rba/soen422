@@ -15,6 +15,8 @@ all: SensorStation/build HvacStation/build server/server
 
 server/server: ${SERVER_SRC}
 	go build -o $@ $^
+
+fmt: ${SERVER_SRC}
 	gofmt -l -s -w $^
 
 release:
