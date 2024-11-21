@@ -17,8 +17,8 @@ const dashboardHtml = `
 		<p>Average humidity: {{ printf "%.1f %%" .Average }}</p>
 		<table>
 			<tr><th>Room</th><th>Humidity</th></tr>
-			{{ range .Rooms }}
-				<tr><td>{{ .RoomID }}</td><td>{{ printf "%.1f %%" .Humidity }}</td></tr>
+			{{ range $id, $humidity := .Rooms }}
+				<tr><td>{{ $id }}</td><td>{{ printf "%.1f %%" $humidity }}</td></tr>
 			{{ end }}
 		</table>
 	</body>
@@ -28,12 +28,7 @@ var dashboard = template.Must(template.New("dashboard").Parse(dashboardHtml))
 
 type Dashboard struct {
 	Average Humidity
-	Rooms   []Room
-}
-
-type Room struct {
-	RoomID
-	Humidity
+	Rooms   map[RoomID]Humidity
 }
 
 type DashboardHandler struct {
@@ -62,8 +57,7 @@ func newDashboard(b Building) Dashboard {
 		average = -1
 	}
 
-	// TODO: sort by room ID.
-	rooms := make([]Room, 0, len(b))
+	rooms := make(map[RoomID]Humidity)
 	for id, record := range b {
 		c := make(chan Humidity)
 		record.getRecent <- c
@@ -71,7 +65,7 @@ func newDashboard(b Building) Dashboard {
 		if !ok {
 			humidity = -1
 		}
-		rooms = append(rooms, Room{id, humidity})
+		rooms[id] = humidity
 	}
 
 	return Dashboard{average, rooms}
