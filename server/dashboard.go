@@ -14,11 +14,25 @@ const dashboardHtml = `
 		<title>HVAC Dashboard</title>
 	</head>
 	<body>
-		<p>Average humidity: {{ printf "%.1f %%" .Average }}</p>
+		<p>Average humidity:
+			{{- if ge .Average 0.0 -}}
+				{{ printf "%.1f%%" .Average }}
+			{{- else -}}
+				unknown
+			{{- end }}</p>
 		<table>
 			<tr><th>Room</th><th>Humidity</th></tr>
 			{{ range $id, $humidity := .Rooms }}
-				<tr><td>{{ $id }}</td><td>{{ printf "%.1f %%" $humidity }}</td></tr>
+				<tr>
+					<td>{{ $id }}</td>
+					<td>
+						{{- if ge $humidity 0.0 -}}
+							{{ printf "%.1f%%" $humidity }}
+						{{- else -}}
+							unknown
+						{{- end -}}
+					</td>
+				</tr>
 			{{ end }}
 		</table>
 	</body>
