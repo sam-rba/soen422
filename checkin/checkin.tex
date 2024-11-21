@@ -1,0 +1,52 @@
+\documentclass{article}
+\usepackage{enumitem,amssymb}
+\usepackage{pifont}
+
+\newlist{todolist}{itemize}{2}
+\setlist[todolist]{label=$\square$}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}%
+\hspace{-2.5pt}}
+
+\title{SOEN 422 Project Check-in}
+\author{Sam Anthony 40271987}
+
+\begin{document}
+
+\maketitle
+
+\par\noindent\rule{\textwidth}{0.4pt}
+\textbf{Server  tasks:}
+\begin{todolist}
+	\item[\done] Design API.
+	\item[\done] Handle \texttt{POST /humidity}.
+	\item[\done] Handle \texttt{POST /target\_humidity}.
+	\item[\done] Handle \texttt{GET /humidity}.
+	\item[\done] Handle \texttt{GET /target\_humidity}.
+	\item[\done] Handle \texttt{POST /duty\_cycle}.
+	\item UI/dashboard.
+\end{todolist}
+
+\par\noindent\rule{\textwidth}{0.4pt}
+\textbf{Sensor-station tasks:}
+\begin{todolist}
+	\item[\done] Design state machine.
+	\item[\done] Measure humidity.
+	\item[\done] Send humidity to server.
+	\item Set target humidity with up/down buttons.
+	\item Send target humidity to server.
+	\item Display measured and target humidity on screen.
+\end{todolist}
+
+\par\noindent\rule{\textwidth}{0.4pt}
+\textbf{HVAC-station tasks:}
+\begin{todolist}
+	\item[\done] Design state machine.
+	\item[\done] Receive humidity from server.
+	\item[\done] PID control of solenoid.
+	\item Receive target humidity from server.
+	\item Send duty cycle to server.
+\end{todolist}
+
+\end{document}
