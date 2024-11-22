@@ -12,7 +12,10 @@ enum pins {
 };
 enum {
 	SECOND = 1000,
-	PERIOD = 30*SECOND,
+
+	PERIOD = 30*SECOND, // Humidity sample period.
+
+	DEBOUNCE = 50 // Button debounce time.
 };
 
 const char ssid[] = "Pixel_6504";
@@ -134,26 +137,33 @@ url(const char *domain, const char *path, const char *query) {
 bool
 upButton(void) {
 	static bool state = LOW;
-	return buttonPressed(UP_BTN, &state);
+	static unsigned long lastEvent = 0;
+	return buttonPressed(UP_BTN, &state, &lastEvent);
 }
 
 // Return true if the DOWN button was pressed.
 bool
 downButton(void) {
 	static bool state = LOW;
-	return buttonPressed(DOWN_BTN, &state);
+	static unsigned long lastEvent = 0;
+	return buttonPressed(DOWN_BTN, &state, &lastEvent);
 }
 
 // Return true if the button connected to the specified pin was pressed.
 bool
-buttonPressed(int pin, bool *lastState) {
+buttonPressed(int pin, bool *lastState, unsigned long *lastEvent) {
+	unsigned long now = millis();
 	if (digitalRead(pin)) {
-		if (*lastState == LOW) { // Rising event.
+		if (*lastState == LOW && now-*lastEvent > DEBOUNCE) {
+			// Rising event.
 			*lastState = HIGH;
+			*lastEvent = now;
 			return true;
 		}
-	} else { // Falling event.
+	} else if (now-*lastEvent > DEBOUNCE) {
+		// Falling event.
 		*lastState = LOW;
+		*lastEvent = now;
 	}
 	return false;
 }
