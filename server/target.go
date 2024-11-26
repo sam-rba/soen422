@@ -2,18 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/sam-rba/share"
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 )
 
 type TargetHumidityHandler struct {
-	mu     sync.Mutex
-	target Humidity
+	target share.Val[Humidity]
 }
 
-func (h *TargetHumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h TargetHumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.URL)
 	switch r.Method {
 	case http.MethodGet:
@@ -26,20 +25,16 @@ func (h *TargetHumidityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (h *TargetHumidityHandler) get(w http.ResponseWriter, r *http.Request) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	fmt.Fprintf(w, "%.2f", h.target)
+func (h TargetHumidityHandler) get(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%.2f", h.target.Get())
 }
 
-func (h *TargetHumidityHandler) post(w http.ResponseWriter, r *http.Request) {
+func (h TargetHumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	target, err := strconv.ParseFloat(r.URL.RawQuery, 32)
 	if err != nil {
 		badRequest(w, "invalid humidity: '%s'", r.URL.RawQuery)
 		return
 	}
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.target = Humidity(target)
+	h.target.Set <- Humidity(target)
 }

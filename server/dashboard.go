@@ -15,12 +15,14 @@ var dashboardHtml string
 var dashboard = template.Must(template.New("dashboard").Parse(dashboardHtml))
 
 type Dashboard struct {
+	Target    Humidity
 	Average   Humidity
 	DutyCycle DutyCycle
 	Rooms     map[RoomID]Humidity
 }
 
 type DashboardHandler struct {
+	target    share.Val[Humidity]
 	building  Building
 	dutyCycle share.Val[DutyCycle]
 }
@@ -42,6 +44,13 @@ func (h DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DashboardHandler) buildDashboard() Dashboard {
+	var target Humidity
+	if targetp, ok := h.target.TryGet(); ok {
+		target = *targetp
+	} else {
+		target = 0
+	}
+
 	average, ok := h.building.average()
 	if !ok {
 		average = -1
@@ -65,5 +74,5 @@ func (h DashboardHandler) buildDashboard() Dashboard {
 		rooms[id] = humidity
 	}
 
-	return Dashboard{average, duty, rooms}
+	return Dashboard{target, average, duty, rooms}
 }

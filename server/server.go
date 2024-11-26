@@ -7,7 +7,11 @@ import (
 	"net/http"
 )
 
-const addr = ":9090"
+const (
+	addr = ":9090"
+
+	targetHumidityDefault = 35.0
+)
 
 var roomIDs = []RoomID{
 	"SNbeEcs7XVWMEvjeEYgwZnp9XYjToVhh",
@@ -17,14 +21,17 @@ var roomIDs = []RoomID{
 type RoomID string
 
 func main() {
+	target := share.NewVal[Humidity]()
+	target.Set <- targetHumidityDefault
 	building := newBuilding(roomIDs)
 	dutyCycle := share.NewVal[DutyCycle]()
+	defer target.Close()
 	defer building.Close()
 	defer dutyCycle.Close()
 
-	http.Handle("/", DashboardHandler{building, dutyCycle})
+	http.Handle("/", DashboardHandler{target, building, dutyCycle})
 	http.Handle("/humidity", HumidityHandler{building})
-	http.Handle("/target_humidity", new(TargetHumidityHandler))
+	http.Handle("/target_humidity", TargetHumidityHandler{target})
 	http.Handle("/duty_cycle", DutyCycleHandler{dutyCycle})
 
 	fmt.Printf("Listening on %s...\n", addr)
