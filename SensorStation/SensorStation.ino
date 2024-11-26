@@ -15,7 +15,11 @@ enum {
 
 	PERIOD = 30*SECOND, // Humidity sample period.
 
-	DEBOUNCE = 50 // Button debounce time.
+	DEBOUNCE = 50, // Button debounce time.
+
+	// Wait this long before updating the server when target humidity is changed.
+	// Avoids spamming requests when button is pressed repeatedly.
+	DEADTIME = 1000,
 };
 
 const char ssid[] = "Pixel_6504";
@@ -57,56 +61,61 @@ setup(void) {
 
 void
 loop(void) {
-	static float targetHumidity = defaultTarget;
 	static unsigned long lastSample = 0; // Last time humidity was measured.
+	static float targetHumidity = defaultTarget;
+	static bool targetDirty = true; // True when target humidity is changed.
+	static unsigned long targetDeadtimeStart; // Don't spam requests when button pressed repeatedly.
 
 	unsigned long now = millis();
+
+	// Measure humidity.
 	if (now - lastSample > PERIOD) {
 		measureHumidity();
 		lastSample = now;
 	}
 
+	// Update target humidity if buttons are pressed.
 	if (upButton() && targetHumidity+incTarget <= maxTarget) {
 		targetHumidity += incTarget;
+		targetDirty = true;
+		targetDeadtimeStart = now;
 		Serial.printf("Up. Target humidity: %.2f%%\n", targetHumidity);
-		/* TODO: send target to server. */
 	} else if (downButton() && targetHumidity-incTarget >= minTarget) {
 		targetHumidity -= incTarget;
+		targetDirty = true;
+		targetDeadtimeStart = now;
 		Serial.printf("Down. Target humidity: %.2f%%\n", targetHumidity);
-		/* TODO: send target to server. */
+	}
+
+	// Send updated target humidity to server.
+	if (targetDirty && now-targetDeadtimeStart > DEADTIME) {
+		if (setTarget(targetHumidity) == 0) {
+			targetDirty = false; // Success.
+		} else {
+			Serial.println("Failed to send target humidity to server.");
+			targetDeadtimeStart = now; // Delay retry.
+		}
 	}
 }
 
 // Measure the humidity and send it to the server.
 void
 measureHumidity(void) {
+	// Measure humidity.
 	float humidity = dht.readHumidity();
 	Serial.printf("Humidity: %.2f %% RH\n", humidity);
 
-	if (send(humidity) != 0)
+	// Send measured humidity to server.
+	const char *url = humidityUrl(humidity);
+	if (post(url) != 0)
 		Serial.println("Failed to send humidity to server.");
 }
 
-// Send the measured humidity to the server.
+// Set the target humidity on the server. Return non-zero on error.
 int
-send(float humidity) {
-	if (WiFi.status() != WL_CONNECTED) {
-		Serial.println("WiFi not connected.");
-		return 1;
-	}
-
-	WiFiClient client;
-	HTTPClient http;
-
-	const char *url = humidityUrl(humidity);
-	Serial.printf("POST %s...\n", url);
-	http.begin(client, url);
-	int responseCode = http.POST("");
-	http.end();
-	Serial.printf("HTTP response code: %d\n", responseCode);
-	if (responseCode != HTTP_CODE_OK)
-		return 1;
-	return 0;
+setTarget(float target) {
+	const char *url = targetUrl(target);
+	return post(url);
 }
 
 // Format the humidity URL string.
@@ -119,6 +128,39 @@ humidityUrl(float humidity) {
 	if (n >= nelem(query))
 		Serial.println("Humidity query string buffer overflow; truncating.");
 	return url(domain, humidityPath, query);
+}
+
+// Format the target humidity URL string.
+char *
+targetUrl(float target) {
+	static char query[256];
+	int n;
+
+	n = snprintf(query, nelem(query), "%.2f", target);
+	if (n >= nelem(query))
+		Serial.println("Target query string buffer overflow; truncating.");
+	return url(domain, targetHumidityPath, query);
+}
+
+// Make a POST request to the server.
+int
+post(const char *url) {
+	if (WiFi.status() != WL_CONNECTED) {
+		Serial.println("WiFi not connected.");
+		return 1;
+	}
+
+	WiFiClient client;
+	HTTPClient http;
+
+	Serial.printf("POST %s...\n", url);
+	http.begin(client, url);
+	int responseCode = http.POST("");
+	http.end();
+	Serial.printf("HTTP response code: %d\n", responseCode);
+	if (responseCode != HTTP_CODE_OK)
+		return 1;
+	return 0;
 }
 
 // Format the url string. Query should not include the '?'.
