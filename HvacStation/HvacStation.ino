@@ -13,11 +13,11 @@ enum tunings {
 	D = 1,
 };
 enum { SOLENOID_WINDOW = 5000 };
-enum { TARGET_HUMIDITY = 35 }; // TODO: retrieve from server.
 
 const char ssid[] = "Pixel_6504";
 const char password[] = "zj3av9sjev7ed8j";
 const char humidityUrl[] = "http://hvac.samanthony.xyz/humidity";
+const char targetUrl[] = "http://hvac.samanthony.xyz/target_humidity";
 
 double pidInput, pidOutput, pidSetpoint;
 PID pid(&pidInput, &pidOutput, &pidSetpoint, P, I, D, DIRECT);
@@ -29,7 +29,6 @@ setup(void) {
 	Serial.begin(9600);
 	while (!Serial) {}
 
-	pidSetpoint = TARGET_HUMIDITY;
 	pid.SetOutputLimits(0, SOLENOID_WINDOW);
 	pid.SetMode(AUTOMATIC);
 
@@ -46,26 +45,30 @@ setup(void) {
 
 void
 loop(void) {
-	static unsigned long lastUpdate = 0; // Last time humidity was retrived from server.
-	static float humidity = TARGET_HUMIDITY;
+	static unsigned long lastUpdate = 0; // Last time humidity and target were retrived from server.
+	static float humidity = 0.0; // Measured humidity of the building.
+	static float target = 0.0; // Target humidity.
 
 	unsigned long now = millis();
 	if (now - lastUpdate > PERIOD) {
-		if (getHumidity(&humidity) == 0)
-			lastUpdate = now;
-		else
+		// Retrieve measured and target humidity from the server.
+		if (get(humidityUrl, &humidity) != 0 || get(targetUrl, &target) != 0)
 			Serial.println("Failed to get humidity from server.");
+		lastUpdate = now;
+		Serial.printf("Measured humidity: %.2f%%\n", humidity);
+		Serial.printf("Target humidity: %.2f%%\n", target);
 	}
 
 	pidInput = humidity;
+	pidSetpoint = target;
 	pid.Compute();
 	writeSolenoidPin(pidOutput);
 }
 
-// Retrieve the measured humidity of the building from the server.
-// Returns non-zero on error.
+// Make a GET request to the server and set *x to the float value that it responds with.
+// Return non-zero on error.
 int
-getHumidity(float *humidity) {
+get(const char *url, float *x) {
 	if (WiFi.status() != WL_CONNECTED) {
 		Serial.println("WiFi not connected.");
 		return 1;
@@ -73,25 +76,26 @@ getHumidity(float *humidity) {
 
 	// Send request to server.
 	HTTPClient http;
-	Serial.printf("GET %s...\n", humidityUrl);
-	http.begin(humidityUrl);
+	Serial.printf("GET %s\n", url);
+	http.begin(url);
 	int responseCode = http.GET();
 	Serial.printf("HTTP response code: %d\n", responseCode);
-	if (responseCode != HTTP_CODE_OK)
+	if (responseCode != HTTP_CODE_OK) {
+		http.end();
 		return 1;
-	const char *response = http.getString().c_str();
-	Serial.printf("HTTP response: '%s'\n", response);
+	}
 
-	int status = parseHumidity(response, humidity);
+	// Parse response.
+	int status = parseFloat(http.getString().c_str(), x);
 	http.end(); // Cannot be freed before parseHumidity() because response is stored in the http buffer.
 	return status;
 }
 
-// Returns non-zero on error.
+// Parse the value of str into *x. Returns non-zero on error.
 int
-parseHumidity(const char *str, float *humidity) {
-	if (sscanf(str, "%f", humidity) != 1) {
-		Serial.printf("Failed to parse humidity: '%s'\n", str);
+parseFloat(const char *str, float *x) {
+	if (sscanf(str, "%f", x) != 1) {
+		Serial.printf("Failed to parse float: '%s'\n", str);
 		return 1;
 	}
 	return 0;
@@ -105,7 +109,8 @@ writeSolenoidPin(double pidOutput) {
 	if (now - windowStartTime > SOLENOID_WINDOW) {
 		// Start new window.
 		windowStartTime = now;
-		Serial.printf("Duty cycle: %.2f\n", pidOutput/SOLENOID_WINDOW);
+		float dc = pidOutput / SOLENOID_WINDOW * 100.0;
+		Serial.printf("Duty cycle: %.0f%%\n", dc);
 	}
 
 	if (pidOutput > now - windowStartTime)
