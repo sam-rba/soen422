@@ -13,7 +13,7 @@ UPLOADFLAGS = -p ${PORT} ${CFLAGS}
 
 all: SensorStation/build HvacStation/build server/server
 
-server/server: ${SERVER_SRC}
+server/server: ${SERVER_SRC} server/dashboard.html
 	go build -o $@ ./server
 
 fmt: ${SERVER_SRC}
