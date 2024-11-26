@@ -20,7 +20,7 @@ fmt: ${SERVER_SRC}
 	gofmt -l -s -w ./server
 
 release:
-	GOOS=${RELEASE_GOOS} GOARCH=${RELEASE_GOARCH} go build -o server/server ${SERVER_SRC}
+	GOOS=${RELEASE_GOOS} GOARCH=${RELEASE_GOARCH} go build -o server/server ./server
 
 clean:
 	rm -r server/server SensorStation/build HvacStation/build
