@@ -6,11 +6,11 @@ import (
 
 type Record[T any] struct {
 	put       chan<- T
-	get       chan<- chan T
-	getRecent chan<- chan T
+	get       chan<- chan Entry[T]
+	getRecent chan<- chan Entry[T]
 }
 
-type entry[T any] struct {
+type Entry[T any] struct {
 	t time.Time
 	v T
 }
@@ -19,11 +19,11 @@ type entry[T any] struct {
 // If the capacity is exceeded, old entires will be discarded and new ones kept.
 func newRecord[T any](capacity int) Record[T] {
 	put := make(chan T)
-	get := make(chan chan T)
-	getRecent := make(chan chan T)
+	get := make(chan chan Entry[T])
+	getRecent := make(chan chan Entry[T])
 
 	go func() {
-		entries := make([]entry[T], 0, capacity)
+		entries := make([]Entry[T], 0, capacity)
 
 		for {
 			select {
@@ -31,7 +31,7 @@ func newRecord[T any](capacity int) Record[T] {
 				if !ok {
 					return
 				}
-				entries = append(entries, entry[T]{time.Now(), v})
+				entries = append(entries, Entry[T]{time.Now(), v})
 				if len(entries) > capacity {
 					entries = entries[1:]
 				}
@@ -40,7 +40,7 @@ func newRecord[T any](capacity int) Record[T] {
 					return
 				}
 				for _, e := range entries {
-					c <- e.v
+					c <- e
 				}
 				close(c)
 			case c, ok := <-getRecent:
@@ -48,7 +48,7 @@ func newRecord[T any](capacity int) Record[T] {
 					return
 				}
 				if len(entries) > 0 {
-					c <- entries[len(entries)-1].v
+					c <- entries[len(entries)-1]
 				}
 				close(c)
 			}

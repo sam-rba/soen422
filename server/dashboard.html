@@ -21,6 +21,7 @@
 				unknown
 			{{- end -}}
 		</p>
+
 		<table>
 			<tr><th>Room</th><th>Humidity</th></tr>
 			{{ range $id, $humidity := .Rooms }}
@@ -37,5 +38,8 @@
 				</tr>
 			{{ end }}
 		</table>
+
+		<h4 style="text-align: center;">Humidity per Room vs. Time</h4>
+		<img src="/chart.png" alt="chart of humidity vs time"/>
 	</body>
 </html>

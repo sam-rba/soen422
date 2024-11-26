@@ -65,10 +65,12 @@ func (h DashboardHandler) buildDashboard() Dashboard {
 
 	rooms := make(map[RoomID]Humidity)
 	for id, record := range h.building {
-		c := make(chan Humidity)
+		c := make(chan Entry[Humidity])
 		record.getRecent <- c
-		humidity, ok := <-c
-		if !ok {
+		var humidity Humidity
+		if e, ok := <-c; ok {
+			humidity = e.v
+		} else {
 			humidity = -1
 		}
 		rooms[id] = humidity

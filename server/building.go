@@ -23,10 +23,10 @@ func (b Building) average() (Humidity, bool) {
 	var sum Humidity = 0
 	nRooms := 0
 	for room, record := range b {
-		c := make(chan Humidity)
+		c := make(chan Entry[Humidity])
 		record.getRecent <- c
-		if humidity, ok := <-c; ok {
-			sum += humidity
+		if e, ok := <-c; ok {
+			sum += e.v
 			nRooms++
 		} else {
 			log.Printf("Warning: no humidity for room '%s'\n", room)

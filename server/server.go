@@ -33,6 +33,7 @@ func main() {
 	http.Handle("/humidity", HumidityHandler{building})
 	http.Handle("/target_humidity", TargetHumidityHandler{target})
 	http.Handle("/duty_cycle", DutyCycleHandler{dutyCycle})
+	http.Handle("/chart.png", ChartHandler{building})
 
 	fmt.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
