@@ -7,7 +7,7 @@ type Building map[RoomID]Record[Humidity]
 func newBuilding(roomIDs []RoomID) Building {
 	b := make(Building)
 	for _, id := range roomIDs {
-		b[id] = newRecord[Humidity]()
+		b[id] = newRecord[Humidity](historySize)
 	}
 	return b
 }

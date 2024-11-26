@@ -15,13 +15,15 @@ type entry[T any] struct {
 	v T
 }
 
-func newRecord[T any]() Record[T] {
+// Create a record with the specified capacity.
+// If the capacity is exceeded, old entires will be discarded and new ones kept.
+func newRecord[T any](capacity int) Record[T] {
 	put := make(chan T)
 	get := make(chan chan T)
 	getRecent := make(chan chan T)
 
 	go func() {
-		var entries []entry[T]
+		entries := make([]entry[T], 0, capacity)
 
 		for {
 			select {
@@ -30,6 +32,9 @@ func newRecord[T any]() Record[T] {
 					return
 				}
 				entries = append(entries, entry[T]{time.Now(), v})
+				if len(entries) > capacity {
+					entries = entries[1:]
+				}
 			case c, ok := <-get:
 				if !ok {
 					return
