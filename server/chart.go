@@ -1,14 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"github.com/wcharczuk/go-chart/v2"
 	"log"
 	"net/http"
-	"fmt"
-	"time"
-	"sync"
 	"slices"
 	"strings"
-	"github.com/wcharczuk/go-chart/v2"
+	"sync"
+	"time"
 )
 
 type ChartHandler struct {
@@ -89,7 +89,7 @@ func buildSeries(room RoomID, in <-chan Entry[Humidity], out chan<- chart.TimeSe
 		y = append(y, float64(e.v))
 	}
 	out <- chart.TimeSeries{
-		Name: string(room),
+		Name:    string(room),
 		XValues: x,
 		YValues: y,
 	}
