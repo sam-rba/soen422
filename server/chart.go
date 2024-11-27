@@ -29,6 +29,9 @@ func (h ChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Padding: chart.Box{Top: 20, Left: 20},
 		},
 		Series: buildSortedSeries(h.building),
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{Min: 0.0, Max: 100.0},
+		},
 	}
 	graph.Elements = []chart.Renderable{
 		chart.Legend(&graph),
