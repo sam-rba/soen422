@@ -1,20 +1,31 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <PID_v1.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #define nelem(arr) (sizeof(arr) / sizeof(arr[0]))
 
-enum {
+enum times {
 	SECOND = 1000,
-	PERIOD = 30*SECOND,
+	SERVER_PERIOD = 10*SECOND,
+	DISPLAY_PERIOD = 1*SECOND,
+	SOLENOID_WINDOW = 2*SECOND,
 };
-enum pins { SOLENOID_PIN = 21 };
+enum pins { SOLENOID_PIN = 23 };
 enum tunings {
 	P = 2,
 	I = 5,
 	D = 1,
 };
-enum { SOLENOID_WINDOW = 5000 };
+enum screen {
+	SCREEN_WIDTH = 128,
+	SCREEN_HEIGHT = 64,
+	SCREEN_I2C_ADDR = 0x3C,
+	TEXT_SIZE = 1,
+	TEXT_COLOR = WHITE,
+};
 
 const char ssid[] = "Pixel_6504";
 const char password[] = "zj3av9sjev7ed8j";
@@ -24,6 +35,7 @@ const char dutyCycleUrl[] = "http://hvac.samanthony.xyz/duty_cycle";
 
 double pidInput, pidOutput, pidSetpoint;
 PID pid(&pidInput, &pidOutput, &pidSetpoint, P, I, D, DIRECT);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 void
 setup(void) {
@@ -31,6 +43,17 @@ setup(void) {
 
 	Serial.begin(9600);
 	while (!Serial) {}
+
+	Serial.println("Initializing display...");
+	if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_I2C_ADDR)) {
+		Serial.println("Failed to initialize display.");
+		for (;;) {}
+	}
+	delay(1000);
+	display.clearDisplay();
+	display.setTextSize(TEXT_SIZE);
+	display.setTextColor(TEXT_COLOR);
+	display.display();
 
 	pid.SetOutputLimits(0, SOLENOID_WINDOW);
 	pid.SetMode(AUTOMATIC);
@@ -50,31 +73,70 @@ void
 loop(void) {
 	static float humidity = 0.0; // Measured humidity of the building.
 	static float target = 0.0; // Target humidity.
-	static unsigned long lastUpdate = 0; // Last time the server was contacted.
+	static unsigned long lastServerUpdate = 0; // Last time the server was contacted.
+	static unsigned long lastDisplayUpdate = 0; // Last time the display was refreshed.
 
-	pidInput = humidity;
-	pidSetpoint = target;
-	pid.Compute();
+	computePidOutput(target, humidity);
 	writeSolenoidPin(pidOutput);
 
 	unsigned long now = millis();
-	if (now - lastUpdate > PERIOD) {
-		lastUpdate = now;
-
-		if (get(humidityUrl, &humidity) != 0)
-			Serial.println("Failed to get humidity from server.");
-
-		if (get(targetUrl, &target) != 0)
-			Serial.println("Failed to get target from server.");
-
-		float dc = pidOutput / SOLENOID_WINDOW * 100.0;
-		if (postDuty(dc) != 0)
-			Serial.println("Failed to post duty cycle to server.");
-
-		Serial.printf("Measured humidity: %.2f%%\n", humidity);
-		Serial.printf("Target humidity: %.2f%%\n", target);
-		Serial.printf("Duty cycle: %.0f%%\n", dc);
+	if (now - lastServerUpdate > SERVER_PERIOD) {
+		lastServerUpdate = now;
+		float dutycycle = pidOutput / SOLENOID_WINDOW * 100.0;
+		contactServer(&target, &humidity, dutycycle);
 	}
+	if (now - lastDisplayUpdate > DISPLAY_PERIOD) {
+		lastDisplayUpdate = now;
+		float dutycycle = pidOutput / SOLENOID_WINDOW * 100.0;
+		refreshDisplay(target, humidity, dutycycle);
+	}
+}
+
+void
+computePidOutput(float target, float humidity) {
+	pidSetpoint = target;
+	pidInput = humidity;
+	pid.Compute();
+}
+
+void
+writeSolenoidPin(double pidOutput) {
+	static unsigned long windowStartTime = 0;
+
+	unsigned long now = millis();
+	if (now - windowStartTime > SOLENOID_WINDOW)
+		windowStartTime = now; // Start new window.
+
+	if (now - windowStartTime < pidOutput)
+		digitalWrite(SOLENOID_PIN, HIGH);
+	else
+		digitalWrite(SOLENOID_PIN, LOW);
+}
+
+// Get the target and measured humidities from the server, and post the duty cycle.
+void
+contactServer(float *target, float *humidity, float dutycycle) {
+	if (get(targetUrl, target) != 0)
+		Serial.println("Failed to get target from server.");
+	if (get(humidityUrl, humidity) != 0)
+		Serial.println("Failed to get humidity from server.");
+	if (postDuty(dutycycle) != 0)
+		Serial.println("Failed to post duty cycle to server.");
+}
+
+// Print the duty cycle and measured and target humidities to the OLED screen.
+void
+refreshDisplay(float target, float humidity, float dutycycle) {
+	Serial.printf("Target humidity: %.2f%%\n", target);
+	Serial.printf("Measured humidity: %.2f%%\n", humidity);
+	Serial.printf("Duty cycle: %.0f%%\n", dutycycle);
+
+	display.clearDisplay();
+	display.setCursor(0, 10);
+	display.printf("Target: %.0f%%\n", target);
+	display.printf("Measured: %.0f%%\n", humidity);
+	display.printf("Duty cycle: %.0f%%\n", dutycycle);
+	display.display();
 }
 
 // Make a GET request to the server and set *x to the float value that it responds with.
@@ -144,22 +206,4 @@ parseFloat(const char *str, float *x) {
 		return 1;
 	}
 	return 0;
-}
-
-void
-writeSolenoidPin(double pidOutput) {
-	static unsigned long windowStartTime = 0;
-
-	unsigned long now = millis();
-	if (now - windowStartTime > SOLENOID_WINDOW) {
-		// Start new window.
-		windowStartTime = now;
-		float dc = pidOutput / SOLENOID_WINDOW * 100.0;
-		Serial.printf("Duty cycle: %.0f%%\n", dc);
-	}
-
-	if (pidOutput > now - windowStartTime)
-		digitalWrite(SOLENOID_PIN, HIGH);
-	else
-		digitalWrite(SOLENOID_PIN, LOW);
 }
