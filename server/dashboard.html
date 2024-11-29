@@ -2,6 +2,15 @@
 <html>
 	<head>
 		<title>HVAC Dashboard</title>
+		<style>
+.center {
+	text-align: center;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 90%;
+}
+		</style>
 	</head>
 	<body>
 		<p>Target humidity: {{ printf "%.1f%%" .Target }}</p>
@@ -39,7 +48,9 @@
 			{{ end }}
 		</table>
 		<hr/>
-		<h4 style="text-align: center;">Humidity per Room vs. Time</h4>
-		<img src="/chart.png" alt="chart of humidity vs time"/>
+		<h4 class="center">Humidity per Room vs. Time</h4>
+		<img src="/humidity_chart.png" alt="chart of humidity vs time" class="center"/>
+		<h4 class="center">Duty Cycle vs. Time</h4>
+		<img src="/duty_cycle_chart.png" alt="chart of duty cycle vs time" class="center"/>
 	</body>
 </html>

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/sam-rba/share"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +15,7 @@ const (
 type DutyCycle float32
 
 type DutyCycleHandler struct {
-	dc share.Val[DutyCycle]
+	dc Record[DutyCycle]
 }
 
 func (h DutyCycleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +33,7 @@ func (h DutyCycleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.dc.Set <- DutyCycle(dc)
+	h.dc.put <- DutyCycle(dc)
 }
 
 func isValidDutyCycle(dc float64) bool {

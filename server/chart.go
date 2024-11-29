@@ -11,11 +11,15 @@ import (
 	"time"
 )
 
-type ChartHandler struct {
+type HumidityChartHandler struct {
 	building Building
 }
 
-func (h ChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+type DutyCycleChartHandler struct {
+	dc Record[DutyCycle]
+}
+
+func (h HumidityChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.URL)
 
 	if r.Method != http.MethodGet {
@@ -33,11 +37,50 @@ func (h ChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ValueFormatter: chart.TimeMinuteValueFormatter,
 		},
 		YAxis: chart.YAxis{
-			Range: &chart.ContinuousRange{Min: 0.0, Max: 100.0},
+			Range: &chart.ContinuousRange{Min: minHumidity, Max: maxHumidity},
 		},
 	}
 	graph.Elements = []chart.Renderable{
 		chart.Legend(&graph),
+	}
+
+	w.Header().Set("Content-Type", "image/png")
+	if err := graph.Render(chart.PNG, w); err != nil {
+		log.Println(err)
+	}
+}
+
+func (h DutyCycleChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.URL)
+
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "invalid method: '%s'", r.Method)
+		return
+	}
+
+	var x []time.Time
+	var y []float64
+	c := make(chan Entry[DutyCycle])
+	h.dc.get <- c
+	for e := range c {
+		x = append(x, e.t)
+		y = append(y, float64(e.v))
+	}
+
+	graph := chart.Chart{
+		Background: chart.Style{
+			Padding: chart.Box{Top: 20, Left: 20},
+		},
+		Series: []chart.Series{
+			chart.TimeSeries{XValues: x, YValues: y},
+		},
+		XAxis: chart.XAxis{
+			ValueFormatter: chart.TimeMinuteValueFormatter,
+		},
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{Min: minDutyCycle, Max: maxDutyCycle},
+		},
 	}
 
 	w.Header().Set("Content-Type", "image/png")

@@ -24,7 +24,7 @@ func main() {
 	target := share.NewVal[Humidity]()
 	target.Set <- targetHumidityDefault
 	building := newBuilding(roomIDs)
-	dutyCycle := share.NewVal[DutyCycle]()
+	dutyCycle := newRecord[DutyCycle](historySize)
 	defer target.Close()
 	defer building.Close()
 	defer dutyCycle.Close()
@@ -33,7 +33,8 @@ func main() {
 	http.Handle("/humidity", HumidityHandler{building})
 	http.Handle("/target_humidity", TargetHumidityHandler{target})
 	http.Handle("/duty_cycle", DutyCycleHandler{dutyCycle})
-	http.Handle("/chart.png", ChartHandler{building})
+	http.Handle("/humidity_chart.png", HumidityChartHandler{building})
+	http.Handle("/duty_cycle_chart.png", DutyCycleChartHandler{dutyCycle})
 
 	fmt.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))

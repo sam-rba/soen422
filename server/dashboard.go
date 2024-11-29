@@ -24,7 +24,7 @@ type Dashboard struct {
 type DashboardHandler struct {
 	target    share.Val[Humidity]
 	building  Building
-	dutyCycle share.Val[DutyCycle]
+	dutyCycle Record[DutyCycle]
 }
 
 func (h DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -56,10 +56,12 @@ func (h DashboardHandler) buildDashboard() Dashboard {
 		average = -1
 	}
 
+	c := make(chan Entry[DutyCycle])
+	h.dutyCycle.getRecent <- c
 	var duty DutyCycle
-	if dutyp, ok := h.dutyCycle.TryGet(); ok {
-		duty = *dutyp
-	} else {
+	if e, ok := <-c; ok {
+		duty = e.v
+	} else  {
 		duty = -1
 	}
 
