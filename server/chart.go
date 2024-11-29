@@ -29,14 +29,17 @@ func (h HumidityChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 
 	graph := chart.Chart{
+		Title: "Humidity per Room",
 		Background: chart.Style{
 			Padding: chart.Box{Top: 20, Left: 20},
 		},
 		Series: buildSortedSeries(h.building),
 		XAxis: chart.XAxis{
+			Name: "time",
 			ValueFormatter: chart.TimeMinuteValueFormatter,
 		},
 		YAxis: chart.YAxis{
+			Name: "relative humidity (%)",
 			Range: &chart.ContinuousRange{Min: minHumidity, Max: maxHumidity},
 		},
 	}
@@ -69,6 +72,7 @@ func (h DutyCycleChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 
 	graph := chart.Chart{
+		Title: "Duty Cycle",
 		Background: chart.Style{
 			Padding: chart.Box{Top: 20, Left: 20},
 		},
@@ -76,9 +80,11 @@ func (h DutyCycleChartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			chart.TimeSeries{XValues: x, YValues: y},
 		},
 		XAxis: chart.XAxis{
+			Name: "time",
 			ValueFormatter: chart.TimeMinuteValueFormatter,
 		},
 		YAxis: chart.YAxis{
+			Name: "duty cycle (%)",
 			Range: &chart.ContinuousRange{Min: minDutyCycle, Max: maxDutyCycle},
 		},
 	}
