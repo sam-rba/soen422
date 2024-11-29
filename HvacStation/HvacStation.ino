@@ -22,7 +22,11 @@ enum pins {
 	REG_ST = 0, // Store; active rising.
 	REG_DS = 2, // Serial data.
 };
-enum reg { REG_SIZE = 8 }; // Number of register outputs.
+enum ledBar {
+	REG_SIZE = 8, // Number of register outputs.
+	NUM_AUX_LEDS = 2, // LEDs outside the register's range.
+	NUM_LEDS = REG_SIZE + NUM_AUX_LEDS, // Size of LED bar.
+};
 enum tunings {
 	P = 2,
 	I = 5,
@@ -41,6 +45,7 @@ const char password[] = "zj3av9sjev7ed8j";
 const char humidityUrl[] = "http://hvac.samanthony.xyz/humidity";
 const char targetUrl[] = "http://hvac.samanthony.xyz/target_humidity";
 const char dutyCycleUrl[] = "http://hvac.samanthony.xyz/duty_cycle";
+const int auxLeds[NUM_AUX_LEDS] = { 15, 13 }; // Parts of LED bar outside range of shift register.
 
 double pidInput, pidOutput, pidSetpoint;
 PID pid(&pidInput, &pidOutput, &pidSetpoint, P, I, D, DIRECT);
@@ -48,11 +53,15 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 void
 setup(void) {
+	int i;
+
 	pinMode(SOLENOID_PIN, OUTPUT);
 	pinMode(REG_CLR, OUTPUT);
 	pinMode(REG_SH, OUTPUT);
 	pinMode(REG_ST, OUTPUT);
 	pinMode(REG_DS, OUTPUT);
+	for (i = 0; i < nelem(auxLeds); i++)
+		pinMode(auxLeds[i], OUTPUT);
 
 	// Clear shift register.
 	digitalWrite(REG_SH, LOW);
@@ -160,14 +169,19 @@ refreshDisplay(float target, float humidity, float dutycycle) {
 
 void
 refreshLedBar(float dutycycle) {
-	int out;
+	int out, i;
 
 	// Number of LEDs to illuminate.
-	out = dutycycle * REG_SIZE / 100;
-	out = clamp(out, 0, REG_SIZE);
+	out = dutycycle * NUM_LEDS / 100;
+	out = clamp(out, 0, NUM_LEDS);
 
+	// Write LEDs connected to shift register.
 	regClear();
-	regWrite(out);
+	regWrite((out < REG_SIZE) ? out : REG_SIZE);
+
+	// Write LEDs outside range of shift register.
+	for (i = REG_SIZE; i < NUM_LEDS; i++)
+		digitalWrite(auxLeds[i - REG_SIZE], (i < out) ? HIGH : LOW);
 }
 
 // Clear the shift register connected to the LED bar.
