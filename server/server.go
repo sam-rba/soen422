@@ -9,7 +9,7 @@ import (
 
 const (
 	addr                  = ":9090"
-	historySize           = 10000 // Number of old samples to keep in memory.
+	historySize           = 100_000 // Number of old samples to keep in memory.
 	targetHumidityDefault = 35.0
 )
 

@@ -20,7 +20,7 @@ enum pins {
 enum times {
 	SECOND = 1000,
 
-	PERIOD = 30*SECOND, // Humidity sample period.
+	PERIOD = 15*SECOND, // Humidity sample period.
 
 	DEBOUNCE = 50, // Button debounce time.
 
