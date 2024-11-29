@@ -8,6 +8,11 @@ import (
 	"strconv"
 )
 
+const (
+	minHumidity = 0.0
+	maxHumidity = 100.0
+)
+
 type Humidity float32
 
 type HumidityHandler struct {
@@ -46,7 +51,7 @@ func (h HumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	humidityStr := queryVals["humidity"]
 
 	humidity, err := strconv.ParseFloat(humidityStr, 32)
-	if err != nil {
+	if err != nil || !isValidHumidity(humidity){
 		badRequest(w, "invalid humidity: '%s'", humidityStr)
 		return
 	}
@@ -78,4 +83,8 @@ func parseQuery(query string, keys []string) (map[string]string, error) {
 		vals[key] = val
 	}
 	return vals, nil
+}
+
+func isValidHumidity(humidity float64) bool {
+	return humidity >= minHumidity && humidity <= maxHumidity;
 }

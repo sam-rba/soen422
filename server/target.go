@@ -31,7 +31,7 @@ func (h TargetHumidityHandler) get(w http.ResponseWriter, r *http.Request) {
 
 func (h TargetHumidityHandler) post(w http.ResponseWriter, r *http.Request) {
 	target, err := strconv.ParseFloat(r.URL.RawQuery, 32)
-	if err != nil {
+	if err != nil || !isValidHumidity(target) {
 		badRequest(w, "invalid humidity: '%s'", r.URL.RawQuery)
 		return
 	}
