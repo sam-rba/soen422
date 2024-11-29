@@ -228,6 +228,7 @@ int
 get(const char *url, float *x) {
 	if (WiFi.status() != WL_CONNECTED) {
 		Serial.println("WiFi not connected.");
+		WiFi.reconnect();
 		return 1;
 	}
 
@@ -265,6 +266,7 @@ int
 post(const char *url) {
 	if (WiFi.status() != WL_CONNECTED) {
 		Serial.println("WiFi not connected.");
+		WiFi.reconnect();
 		return 1;
 	}
 

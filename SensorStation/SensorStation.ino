@@ -194,6 +194,7 @@ int
 post(const char *url) {
 	if (WiFi.status() != WL_CONNECTED) {
 		Serial.println("WiFi not connected.");
+		WiFi.reconnect();
 		return 1;
 	}
 
