@@ -3,12 +3,12 @@
 	<head>
 		<title>HVAC Dashboard</title>
 		<style>
-.center {
-	text-align: center;
-	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	width: 90%;
+hr { margin-top: 1.5em; }
+table { border-collapse: collapse; }
+th, td {
+	padding: 0.25em;
+	border-bottom-style: solid;
+	border-width: thin;
 }
 		</style>
 	</head>
@@ -30,7 +30,7 @@
 				unknown
 			{{- end -}}
 		</p>
-		<hr/>
+
 		<table>
 			<tr><th>Room</th><th>Humidity</th></tr>
 			{{ range $id, $humidity := .Rooms }}
@@ -48,7 +48,8 @@
 			{{ end }}
 		</table>
 		<hr/>
-		<img src="/humidity_chart.png" alt="chart of humidity vs time" class="center"/>
-		<img src="/duty_cycle_chart.png" alt="chart of duty cycle vs time" class="center"/>
+		<img src="/humidity_chart.png" alt="chart of humidity vs time"/>
+		<hr/>
+		<img src="/duty_cycle_chart.png" alt="chart of duty cycle vs time"/>
 	</body>
 </html>
