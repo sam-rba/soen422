@@ -1,16 +1,23 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #define nelem(arr) (sizeof(arr) / sizeof(arr[0]))
 
 enum pins {
-	DHT_PIN = 21,
+	DHT_PIN = 14,
 
-	UP_BTN = 16,
-	DOWN_BTN = 17,
+	UP_BTN = 13,
+	DOWN_BTN = 12,
+
+	OLED_SDA = 4,
+	OLED_SCL = 15,
+	OLED_RST = 16,
 };
-enum {
+enum times {
 	SECOND = 1000,
 
 	PERIOD = 30*SECOND, // Humidity sample period.
@@ -20,6 +27,13 @@ enum {
 	// Wait this long before updating the server when target humidity is changed.
 	// Avoids spamming requests when button is pressed repeatedly.
 	DEADTIME = 1000,
+};
+enum screen {
+	SCREEN_WIDTH = 128,
+	SCREEN_HEIGHT = 64,
+	SCREEN_I2C_ADDR = 0x3C,
+	TEXT_SIZE = 1,
+	TEXT_COLOR = WHITE,
 };
 
 const char ssid[] = "Pixel_6504";
@@ -34,14 +48,32 @@ const float maxTarget = 100.0; // Maximum target humidity.
 const float incTarget = 0.5; // Target humidity increment from button press.
 
 DHT dht(DHT_PIN, DHT11); // Humidity sensor.
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 void
 setup(void) {
 	pinMode(UP_BTN, INPUT);
 	pinMode(DOWN_BTN, INPUT);
+	pinMode(OLED_RST, OUTPUT);
 
 	Serial.begin(9600);
 	while (!Serial) {}
+
+	digitalWrite(OLED_RST, LOW);
+	delay(20);
+	digitalWrite(OLED_RST, HIGH);
+	Wire.begin(OLED_SDA, OLED_SCL);
+	if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) {
+		Serial.println("Failed to initialize screen");
+		for (;;) {}
+	}
+	delay(1000);
+	display.clearDisplay();
+	display.setTextSize(1);
+	display.setTextColor(WHITE);
+	display.setCursor(0, 0);
+	display.println("...");
+	display.display();
 
 	WiFi.begin(ssid, password);
 	Serial.print("Connecting to WiFi...");
@@ -61,8 +93,9 @@ setup(void) {
 
 void
 loop(void) {
+	static float humidity = 0.0; // Measured humidity
 	static unsigned long lastSample = 0; // Last time humidity was measured.
-	static float targetHumidity = defaultTarget;
+	static float target = defaultTarget; // Target humidity.
 	static bool targetDirty = true; // True when target humidity is changed.
 	static unsigned long targetDeadtimeStart; // Don't spam requests when button pressed repeatedly.
 
@@ -70,26 +103,29 @@ loop(void) {
 
 	// Measure humidity.
 	if (now - lastSample > PERIOD) {
-		measureHumidity();
+		humidity = measureHumidity();
 		lastSample = now;
+		refreshDisplay(target, humidity);
 	}
 
 	// Update target humidity if buttons are pressed.
-	if (upButton() && targetHumidity+incTarget <= maxTarget) {
-		targetHumidity += incTarget;
+	if (upButton() && target+incTarget <= maxTarget) {
+		target += incTarget;
 		targetDirty = true;
 		targetDeadtimeStart = now;
-		Serial.printf("Up. Target humidity: %.2f%%\n", targetHumidity);
-	} else if (downButton() && targetHumidity-incTarget >= minTarget) {
-		targetHumidity -= incTarget;
+		Serial.printf("Up. Target humidity: %.2f%%\n", target);
+		refreshDisplay(target, humidity);
+	} else if (downButton() && target-incTarget >= minTarget) {
+		target -= incTarget;
 		targetDirty = true;
 		targetDeadtimeStart = now;
-		Serial.printf("Down. Target humidity: %.2f%%\n", targetHumidity);
+		Serial.printf("Down. Target humidity: %.2f%%\n", target);
+		refreshDisplay(target, humidity);
 	}
 
 	// Send updated target humidity to server.
 	if (targetDirty && now-targetDeadtimeStart > DEADTIME) {
-		if (setTarget(targetHumidity) == 0) {
+		if (setTarget(target) == 0) {
 			targetDirty = false; // Success.
 		} else {
 			Serial.println("Failed to send target humidity to server.");
@@ -99,7 +135,7 @@ loop(void) {
 }
 
 // Measure the humidity and send it to the server.
-void
+float
 measureHumidity(void) {
 	// Measure humidity.
 	float humidity = dht.readHumidity();
@@ -109,6 +145,17 @@ measureHumidity(void) {
 	const char *url = humidityUrl(humidity);
 	if (post(url) != 0)
 		Serial.println("Failed to send humidity to server.");
+
+	return humidity;
+}
+
+void
+refreshDisplay(float target, float humidity) {
+	display.clearDisplay();
+	display.setCursor(0, 0);
+	display.printf("- Humidity -\n\n%8s: %5.1f%%\n\n%8s: %5.1f%%\n",
+		"Target", target, "Measured", humidity);
+	display.display();
 }
 
 // Set the target humidity on the server. Return non-zero on error.
