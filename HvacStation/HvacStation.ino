@@ -13,7 +13,16 @@ enum times {
 	DISPLAY_PERIOD = 1*SECOND,
 	SOLENOID_WINDOW = 2*SECOND,
 };
-enum pins { SOLENOID_PIN = 23 };
+enum pins {
+	SOLENOID_PIN = 23,
+
+	// 74HC595 shift register inputs: (for LED bar)
+	REG_CLR = 25, // Clear; active low.
+	REG_SH = 4, // Shift; active rising.
+	REG_ST = 0, // Store; active rising.
+	REG_DS = 2, // Serial data.
+};
+enum reg { REG_SIZE = 8 }; // Number of register outputs.
 enum tunings {
 	P = 2,
 	I = 5,
@@ -40,6 +49,17 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 void
 setup(void) {
 	pinMode(SOLENOID_PIN, OUTPUT);
+	pinMode(REG_CLR, OUTPUT);
+	pinMode(REG_SH, OUTPUT);
+	pinMode(REG_ST, OUTPUT);
+	pinMode(REG_DS, OUTPUT);
+
+	// Clear shift register.
+	digitalWrite(REG_SH, LOW);
+	digitalWrite(REG_ST, LOW);
+	digitalWrite(REG_CLR, LOW);
+	delay(20);
+	digitalWrite(REG_CLR, HIGH);
 
 	Serial.begin(9600);
 	while (!Serial) {}
@@ -78,17 +98,17 @@ loop(void) {
 
 	computePidOutput(target, humidity);
 	writeSolenoidPin(pidOutput);
+	float dutycycle = pidOutput / SOLENOID_WINDOW * 100.0;
 
 	unsigned long now = millis();
 	if (now - lastServerUpdate > SERVER_PERIOD) {
 		lastServerUpdate = now;
-		float dutycycle = pidOutput / SOLENOID_WINDOW * 100.0;
 		contactServer(&target, &humidity, dutycycle);
 	}
 	if (now - lastDisplayUpdate > DISPLAY_PERIOD) {
 		lastDisplayUpdate = now;
-		float dutycycle = pidOutput / SOLENOID_WINDOW * 100.0;
 		refreshDisplay(target, humidity, dutycycle);
+		refreshLedBar(dutycycle);
 	}
 }
 
@@ -137,6 +157,32 @@ refreshDisplay(float target, float humidity, float dutycycle) {
 	display.printf("Measured: %.0f%%\n", humidity);
 	display.printf("Duty cycle: %.0f%%\n", dutycycle);
 	display.display();
+}
+
+void
+refreshLedBar(float dutycycle) {
+	int out, i;
+
+	out = dutycycle * REG_SIZE / 100;
+	out = clamp(out, 0, REG_SIZE);
+
+	digitalWrite(REG_CLR, LOW);
+	delay(10);
+	digitalWrite(REG_CLR, HIGH);
+	delay(10);
+
+	digitalWrite(REG_DS, HIGH);
+	delay(10);
+	for (i = 0; i < out; i++) {
+		digitalWrite(REG_SH, HIGH);
+		delay(10);
+		digitalWrite(REG_SH, LOW);
+		delay(10);
+	}
+	digitalWrite(REG_DS, LOW);
+	digitalWrite(REG_ST, HIGH);
+	delay(10);
+	digitalWrite(REG_ST, LOW);
 }
 
 // Make a GET request to the server and set *x to the float value that it responds with.
@@ -206,4 +252,9 @@ parseFloat(const char *str, float *x) {
 		return 1;
 	}
 	return 0;
+}
+
+float
+clamp(float v, float lo, float hi) {
+	return min(max(v, lo), hi);
 }
