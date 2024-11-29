@@ -16,7 +16,10 @@ enum times {
 enum pins {
 	SOLENOID_PIN = 23,
 
-	// 74HC595 shift register inputs: (for LED bar)
+	LO_LED = 12, // Lit when measured humidity is below target.
+	HI_LED = 14, // Lit when measured humidity is above target.
+
+	// 74HC595 shift register inputs; (for LED bar):
 	REG_CLR = 25, // Clear; active low.
 	REG_SH = 4, // Shift; active rising.
 	REG_ST = 0, // Store; active rising.
@@ -56,6 +59,8 @@ setup(void) {
 	int i;
 
 	pinMode(SOLENOID_PIN, OUTPUT);
+	pinMode(LO_LED, OUTPUT);
+	pinMode(HI_LED, OUTPUT);
 	pinMode(REG_CLR, OUTPUT);
 	pinMode(REG_SH, OUTPUT);
 	pinMode(REG_ST, OUTPUT);
@@ -117,6 +122,8 @@ loop(void) {
 		lastDisplayUpdate = now;
 		refreshDisplay(target, humidity, dutycycle);
 		refreshLedBar(dutycycle);
+		digitalWrite(LO_LED, (humidity < target) ? HIGH : LOW);
+		digitalWrite(HI_LED, (humidity > target) ? HIGH : LOW);
 	}
 }
 
