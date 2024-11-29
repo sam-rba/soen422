@@ -57,9 +57,8 @@ setup(void) {
 	// Clear shift register.
 	digitalWrite(REG_SH, LOW);
 	digitalWrite(REG_ST, LOW);
-	digitalWrite(REG_CLR, LOW);
-	delay(20);
-	digitalWrite(REG_CLR, HIGH);
+	digitalWrite(REG_DS, LOW);
+	regClear();
 
 	Serial.begin(9600);
 	while (!Serial) {}
@@ -161,25 +160,42 @@ refreshDisplay(float target, float humidity, float dutycycle) {
 
 void
 refreshLedBar(float dutycycle) {
-	int out, i;
+	int out;
 
+	// Number of LEDs to illuminate.
 	out = dutycycle * REG_SIZE / 100;
 	out = clamp(out, 0, REG_SIZE);
 
+	regClear();
+	regWrite(out);
+}
+
+// Clear the shift register connected to the LED bar.
+void
+regClear(void) {
 	digitalWrite(REG_CLR, LOW);
 	delay(10);
 	digitalWrite(REG_CLR, HIGH);
 	delay(10);
+}
 
+// Set the first n bits of the shift register connected to the LED bar.
+void
+regWrite(int n) {
+	int i;
+
+	// Write bits.
 	digitalWrite(REG_DS, HIGH);
 	delay(10);
-	for (i = 0; i < out; i++) {
+	for (i = 0; i < n; i++) {
 		digitalWrite(REG_SH, HIGH);
 		delay(10);
 		digitalWrite(REG_SH, LOW);
 		delay(10);
 	}
 	digitalWrite(REG_DS, LOW);
+
+	// Store.
 	digitalWrite(REG_ST, HIGH);
 	delay(10);
 	digitalWrite(REG_ST, LOW);
