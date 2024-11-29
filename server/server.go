@@ -40,7 +40,7 @@ func main() {
 }
 
 func badRequest(w http.ResponseWriter, format string, a ...any) {
-	log.Println("Warning: bad request:", fmt.Sprintf(format, a))
+	log.Println("Warning: bad request:", fmt.Sprintf(format, a...))
 	w.WriteHeader(http.StatusBadRequest)
-	fmt.Fprintf(w, format, a)
+	fmt.Fprintf(w, format, a...)
 }
