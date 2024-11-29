@@ -1,0 +1,71 @@
+[Intro]
+
+
+# Problem
+
+The best humidity for an indoor space is 35--50%.  That's what Health
+Canada recommends.  But when indoor heating is used, the air gets dry.
+In the winter it can easily drop below 30%.  This can be pretty
+uncomfortable.  It irritates your skin and eyes, and can lead to
+respiratory infections.
+
+
+# Solution
+
+The solution is a humidifier system.  It can be installed in campus'
+HVAC systems to regulate the humidity.
+
+Ideally it should be user-programmable, energy-efficient.  It should be
+able to control humidity dynamically, so it uses a closed-loop control
+system.
+
+
+# Schematic
+
+Installed in each room of the building is a microcontroller that
+periodically measures the humidity of the room and sends it to a web
+server.  It also sends the target humidity which is controlled by the
+user.  There are two buttons, one to increase the target humidity and one
+to lower it.  This whole enclosure with the microcontroller, humidity
+sensor, and buttons, will be mounted on the wall like a thermostat.
+It also has an OLED screen which shows the target humidity and the
+measured humidity.
+
+The server keeps track of the humidity measurements from each room and
+calculates an average for the whole building.  It has a web control panel
+that displays the current conditions in the building and a graph of the
+humidity of each room over time.
+
+The humidifier itself is stored in a back room somewhere, connected to the
+HVAC ductwork.  It's a _fog type_ humidifier---it uses a high-pressure
+water pump and a nozzle to inject tiny water droplets into the air.
+The flow of water is controlled by a solenoid which is driven by PWM
+from a microcontroller. It receives the measured and target humidity
+from the server and uses a PID algorithm to determine how much water
+to inject.  If the humidity is too low, it will increase the duty cycle
+of the solenoid to bring the humidity back on-target.
+
+
+# Assessment
+
+Overall, I'm happy with the outcome of the project.  The system satisfies
+all of the original goals and criteria.
+
+It regulates humidity dynamically using a closed-loop PID algorithm with
+feedback from the sensor in each room.
+
+It's user-programmable with the up and down buttons.
+
+It's easy to use.  The screen shows the target and actual humidity,
+and the web dashboard can be used to monitor the system.
+
+It's easy to install into an existing HVAC system on campus.
+
+It's energy-efficient which also means it's cheap to run.
+
+- Security [HTTPS?]
+
+It's reliable.  The ESP32s are programmed to reconnect to WiFi if they
+lose their connection.  The server can handle requests concurrently and
+the internals are synchronized properly.  It does input validation on
+all of the POST requests from the Arduinos.
