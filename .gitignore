@@ -10,3 +10,6 @@
 *.run.xml
 server/server
 */build
+*.kdenlive
+*.mp4
+presentation/audio
