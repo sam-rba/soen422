@@ -1,6 +1,0 @@
-Humidifier.
-Sense humidity in room.
-Send data to server.
-Control water nozzle solenoid in HVAC room with PWM and PID.
-
-Add difficulty: set target humidity via bluetooth.
